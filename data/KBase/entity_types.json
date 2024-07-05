@@ -1,0 +1,44 @@
+{
+    "plasmid": {
+        "id": 0
+    },
+    "organism host": {
+        "id": 1
+    },
+    "promoter": {
+        "id": 2
+    },
+    "genome engineering": {
+        "id": 3
+    },
+    "cloning method": {
+        "id": 4
+    },
+    "reporter": {
+        "id": 5
+    },
+    "regulator": {
+        "id": 6
+    },
+    "antibiotic marker": {
+        "id": 7
+    },
+    "genetic screen": {
+        "id": 8
+    },
+    "RBS": {
+        "id": 9
+    },
+    "counter selection": {
+        "id": 10
+    },
+    "terminator": {
+        "id": 11
+    },
+    "DNA transfer": {
+        "id": 12
+    },
+    "operator": {
+        "id": 13
+    }
+}
