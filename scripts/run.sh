@@ -1,5 +1,8 @@
 #!/bin/bash
 
+BASE_DIR=${GT_BASE_DIR:-/home/matitov/gllm}
+SCRATCH_DIR=${GT_SCRATCH_DIR:-/eagle/RECUP/matitov}
+
 PS3='Please enter your choice: '
 options=("Run LLaMA-2"
          "Run LLaMA-3"
@@ -10,9 +13,9 @@ options=("Run LLaMA-2"
          "Quit")
 select opt in "${options[@]}"
 do
-    export DATA_REPO_PATH=/home/ac.gpark/BioIE-LLM-WIP/data
-    export OUTPUT_DIR=/home/ac.gpark/BioIE-LLM-WIP/result
-    export LORA_OUTPUT_DIR=/scratch/ac.gpark/LoRA_finetuned_models
+    export DATA_REPO_PATH="${BASE_DIR}/BioIE-LLM-WIP/data"
+    export OUTPUT_DIR="${BASE_DIR}/BioIE-LLM-WIP/result"
+    export LORA_OUTPUT_DIR="${SCRATCH_DIR}/LoRA_finetuned_models"
     
     case $opt in
         "Run LLaMA-2")
@@ -27,13 +30,13 @@ do
             export VALIDATION_BATCH_SIZE=8 # used in finetuning
             export TEST_BATCH_SIZE=8
             export N_SHOTS=0
-            export LORA_WEIGHTS=/scratch/ac.gpark/LoRA_finetuned_models/meta-llama/Llama-2-7b-chat-hf/kbase/entity_type/final_checkpoint
+            export LORA_WEIGHTS="${LORA_OUTPUT_DIR}/meta-llama/Llama-2-7b-chat-hf/kbase/entity_type/final_checkpoint"
             
             # python ~/BioIE-LLM-WIP/src/run_model.py \
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
+            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -67,13 +70,13 @@ do
             export VALIDATION_BATCH_SIZE=8 # used in finetuning
             export TEST_BATCH_SIZE=8
             export N_SHOTS=0
-            export LORA_WEIGHTS=/scratch/ac.gpark/LoRA_finetuned_models/meta-llama/Llama-3-8B/kbase/entity_type/final_checkpoint
+            export LORA_WEIGHTS="${LORA_OUTPUT_DIR}/meta-llama/Llama-3-8B/kbase/entity_type/final_checkpoint"
             
             # python ~/BioIE-LLM-WIP/src/run_model.py \
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            python ~/BioIE-LLM-WIP/src/run_model.py \
+            python "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -110,7 +113,7 @@ do
             export VALIDATION_BATCH_SIZE=8 # used in finetuning
             export TEST_BATCH_SIZE=8
             export N_SHOTS=0
-            export LORA_WEIGHTS=/scratch/ac.gpark/LoRA_finetuned_models/mistralai/Mistral-7B-Instruct-v0.2/kbase/entity_type
+            export LORA_WEIGHTS="${LORA_OUTPUT_DIR}/mistralai/Mistral-7B-Instruct-v0.2/kbase/entity_type"
             # export LORA_WEIGHTS=/scratch/ac.gpark/LoRA_finetuned_models/mistralai/Mixtral-8x7B-Instruct-v0.1/kbase/entity_type
             
             
@@ -118,7 +121,7 @@ do
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
+            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -153,13 +156,13 @@ do
             export VALIDATION_BATCH_SIZE=8 # used in finetuning
             export TEST_BATCH_SIZE=8
             export N_SHOTS=0
-            export LORA_WEIGHTS=/scratch/ac.gpark/LoRA_finetuned_models/tiiuae/falcon-7b/kbase/entity_type/final_checkpoint
+            export LORA_WEIGHTS="${LORA_OUTPUT_DIR}/tiiuae/falcon-7b/kbase/entity_type/final_checkpoint"
 
             # python ~/BioIE-LLM-WIP/src/run_model.py \
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            python ~/BioIE-LLM-WIP/src/run_model.py \
+            python "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -195,13 +198,13 @@ do
             export VALIDATION_BATCH_SIZE=8 # used in finetuning
             export TEST_BATCH_SIZE=8
             export N_SHOTS=0
-            export LORA_WEIGHTS=/scratch/ac.gpark/LoRA_finetuned_models/tiiuae/falcon-7b/kbase/entity_type/final_checkpoint
+            export LORA_WEIGHTS="${LORA_OUTPUT_DIR}/tiiuae/falcon-7b/kbase/entity_type/final_checkpoint"
             
             # python ~/BioIE-LLM-WIP/src/run_model.py \
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            python ~/BioIE-LLM-WIP/src/run_model.py \
+            python "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -230,13 +233,13 @@ do
             export VALIDATION_BATCH_SIZE=8 # used in finetuning
             export TEST_BATCH_SIZE=8
             export N_SHOTS=0
-            export LORA_WEIGHTS=/scratch/ac.gpark/LoRA_finetuned_models/mosaicml/mpt-7b-chat/kbase/entity_type/final_checkpoint
+            export LORA_WEIGHTS="${LORA_OUTPUT_DIR}/mosaicml/mpt-7b-chat/kbase/entity_type/final_checkpoint"
             
             # python ~/BioIE-LLM-WIP/src/run_model.py \
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
+            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
