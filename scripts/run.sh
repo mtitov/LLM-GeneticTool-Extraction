@@ -2,6 +2,9 @@
 
 BASE_DIR=${GT_BASE_DIR:-/home/matitov/gllm}
 SCRATCH_DIR=${GT_SCRATCH_DIR:-/eagle/RECUP/matitov}
+GT_APP='run_model.py'
+# RUN SERVICE
+#   GT_APP='wfms/service.py'
 
 PS3='Please enter your choice: '
 options=("Run LLaMA-2"
@@ -36,7 +39,7 @@ do
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
+            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/${GT_APP}" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -76,7 +79,7 @@ do
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            python "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
+            python "${BASE_DIR}/BioIE-LLM-WIP/src/${GT_APP}" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -121,7 +124,7 @@ do
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
+            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/${GT_APP}" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -162,7 +165,7 @@ do
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            python "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
+            python "${BASE_DIR}/BioIE-LLM-WIP/src/${GT_APP}" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -204,7 +207,7 @@ do
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            python "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
+            python "${BASE_DIR}/BioIE-LLM-WIP/src/${GT_APP}" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
@@ -239,7 +242,7 @@ do
             # torchrun --nproc_per_node=4 ~/BioIE-LLM-WIP/src/run_model.py \
             # accelerate launch ~/BioIE-LLM-WIP/src/run_model.py \
             
-            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/run_model.py" \
+            accelerate launch "${BASE_DIR}/BioIE-LLM-WIP/src/${GT_APP}" \
                 --model_name $MODEL_NAME \
                 --model_type $MODEL_TYPE \
                 --data_repo_path $DATA_REPO_PATH \
