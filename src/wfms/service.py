@@ -328,8 +328,13 @@ if __name__ == '__main__':
     service = ModelService(args=get_args())
     service.start()
 
-    # consider to use ru.zmq.Registry
-    ru.write_json({'service_addr': service.addr}, 'model_service_reg.json')
+    reg_addr = os.getenv('RP_REGISTRY_ADDRESS')
+    if reg_addr:
+        reg = ru.zmq.RegistryClient(url=reg_addr)
+        reg['app.service_addr'] = service.addr
+        reg.close()
+    else:
+        ru.write_json({'service_addr': service.addr}, 'model_service_reg.json')
     # service.wait()
 
     # --- FOR TEST PURPOSES ---
