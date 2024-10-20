@@ -1,0 +1,13 @@
+{
+    "model_name": "",
+    "model_type": "",
+    "max_new_tokens": "",
+    "data_type": "",
+    "load_in_4bit_flag": "",
+    "load_in_8bit_flag": "",
+    "max_memory": "",
+    "low_cpu_mem_usage": "",
+    "quantization_config": "",
+    "device_map": "",
+    "lora_finetune": ""
+}
