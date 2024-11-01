@@ -13,7 +13,7 @@ from datetime import timedelta, datetime
 # Make sure to set the variable before importing transformers module (including indirect import through galai).
 # ref: https://github.com/paperswithcode/galai/blob/main/notebooks/Introduction%20to%20Galactica%20Models.ipynb
 # os.environ["TRANSFORMERS_CACHE"] = "/scratch/ac.gpark/.cache/huggingface"
-os.environ["HF_HOME"] = "/scratch/ac.gpark/.cache/huggingface"
+# os.environ["HF_HOME"] = "/scratch/ac.gpark/.cache/huggingface"
 
 # ref: https://huggingface.co/docs/transformers/v4.21.1/en/troubleshooting#troubleshoot
 #os.environ["CUDA_VISIBLE_DEVICES"] = "" # to run on CPU

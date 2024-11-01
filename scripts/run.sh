@@ -6,6 +6,8 @@ GT_APP='run_model.py'
 # RUN SERVICE
 #   GT_APP='wfms/service.py'
 
+export HF_HOME=${HF_HOME:-/eagle/RECUP/matitov/.cache/huggingface}
+
 PS3='Please enter your choice: '
 options=("Run LLaMA-2"
          "Run LLaMA-3"

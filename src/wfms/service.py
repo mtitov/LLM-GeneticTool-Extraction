@@ -7,17 +7,14 @@ from datetime import datetime, timedelta
 
 import radical.utils as ru
 
-from ..evaluators import compute_metrics, save_results
+from evaluators import compute_metrics, save_results
 
-from ..run_model import load_model, get_data_processor, get_args, get_rank
-from ..run_model import torch, dist
-from ..run_model import PeftModel, BitsAndBytesConfig
-from ..run_model import Accelerator, DistributedType
+from run_model import load_model, get_data_processor, get_args, get_rank
+from run_model import torch, dist
+from run_model import PeftModel, BitsAndBytesConfig
+from run_model import Accelerator, DistributedType
 
-# environment
-os.environ['HF_HOME'] = '/eagle/RECUP/matitov/.cache/huggingface'
-
-DEFAULT_CONFIG_FILE = 'service.json'
+CONFIG_FILE = 'service.json'
 
 
 class ModelService(ru.zmq.Server):
@@ -25,7 +22,12 @@ class ModelService(ru.zmq.Server):
     def __init__(self, path=None, args=None):
         ru.zmq.Server.__init__(self, path=path)
 
-        cfg_file = os.path.join(path or '', DEFAULT_CONFIG_FILE)
+        if path:
+            cfg_file = os.path.join(path, CONFIG_FILE)
+
+        if not path or not os.path.exists(cfg_file):
+            cfg_file = os.path.join(os.path.dirname(__file__), CONFIG_FILE)
+
         if not os.path.exists(cfg_file):
             raise FileNotFoundError('Model configuration file not found')
 
@@ -125,25 +127,25 @@ class ModelService(ru.zmq.Server):
         self._args.low_cpu_mem_usage = True
 
     def load_model(self):
-        model_info = load_model(self, **{k: self._args[k]
-                                         for k in ['model_name',
-                                                   'model_type',
-                                                   'max_new_tokens',
-                                                   'data_type',
-                                                   'load_in_4bit_flag',
-                                                   'load_in_8bit_flag',
-                                                   'max_memory',
-                                                   'low_cpu_mem_usage',
-                                                   'quantization_config',
-                                                   'device_map',
-                                                   'lora_finetune']})
+        model_info = load_model(**{k: self._args.get(k)
+                                   for k in ['model_name',
+                                             'model_type',
+                                             'max_new_tokens',
+                                             'data_type',
+                                             'load_in_4bit_flag',
+                                             'load_in_8bit_flag',
+                                             'max_memory',
+                                             'low_cpu_mem_usage',
+                                             'quantization_config',
+                                             'device_map',
+                                             'lora_finetune']})
         self._model                  = model_info[0]
         self._args.tokenizer         = model_info[1]
         self._args.generation_config = model_info[2]
 
     def get_data_processor(self):
         self._data_processor = get_data_processor(
-            *[self._args[k] for k in ['data_name',
+            *[self._args.get(k) for k in ['data_name',
                                       'data_repo_path',
                                       'task',
                                       'test_sample_size',
@@ -151,7 +153,7 @@ class ModelService(ru.zmq.Server):
                                       'tokenizer',
                                       'model_max_len',
                                       'generation_config']],
-            **{k: self._args[k] for k in ['num_of_kbase_classes']})
+            **{k: self._args.get(k) for k in ['num_of_kbase_classes']})
 
     def _processor(self, arg):
 
@@ -181,33 +183,33 @@ class ModelService(ru.zmq.Server):
                             'meta-llama/Meta-Llama-3-70B-Instruct']):
                     self._data_processor.finetune(
                         self._model,
-                        *[self._args[k] for k in ['model_type',
-                                                  'train_batch_size',
-                                                  'validation_batch_size',
-                                                  'lora_output_dir']])
+                        *[self._args.get(k) for k in ['model_type',
+                                                      'train_batch_size',
+                                                      'validation_batch_size',
+                                                      'lora_output_dir']])
                     self._args.lora_output_dir = os.path.join(
                         self._args.lora_output_dir, 'final_checkpoint')
 
                 else:
                     self._data_processor.finetune_by_accelerator(
                         self._model,
-                        *[self._args[k] for k in ['model_type',
-                                                  'train_batch_size',
-                                                  'validation_batch_size',
-                                                  'lora_output_dir']])
+                        *[self._args.get(k) for k in ['model_type',
+                                                      'train_batch_size',
+                                                      'validation_batch_size',
+                                                      'lora_output_dir']])
 
-                _model = load_model(self, **{k: self._args[k]
-                                             for k in ['model_name',
-                                                       'model_type',
-                                                       'max_new_tokens',
-                                                       'data_type',
-                                                       'load_in_4bit_flag',
-                                                       'load_in_8bit_flag',
-                                                       'max_memory',
-                                                       'low_cpu_mem_usage',
-                                                       'quantization_config',
-                                                       'device_map',
-                                                       'lora_finetune']})[0]
+                _model = load_model(**{k: self._args.get(k)
+                                       for k in ['model_name',
+                                                 'model_type',
+                                                 'max_new_tokens',
+                                                 'data_type',
+                                                 'load_in_4bit_flag',
+                                                 'load_in_8bit_flag',
+                                                 'max_memory',
+                                                 'low_cpu_mem_usage',
+                                                 'quantization_config',
+                                                 'device_map',
+                                                 'lora_finetune']})[0]
 
                 if self._args.model_name == 'MPT':
                     # MPT is trained with right padding, so change it to
