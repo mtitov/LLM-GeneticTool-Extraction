@@ -1,2 +1,12 @@
 {
+    "model_name": "LLaMA-2",
+    "model_type": "meta-llama/Llama-2-7b-chat-hf",
+    "data_repo_path": "/home/matitov/gllm/BioIE-LLM-WIP/data",
+    "output_dir": "/home/matitov/gllm/BioIE-LLM-WIP/result",
+    "data_name": "kbase",
+    "task": "entity_type",
+    "train_batch_size": 2,
+    "validation_batch_size": 8,
+    "test_batch_size": 8,
+    "n_shots": 0
 }

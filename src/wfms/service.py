@@ -14,11 +14,14 @@ from run_model import torch, dist
 from run_model import PeftModel, BitsAndBytesConfig
 from run_model import Accelerator, DistributedType
 
+CURR_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = 'service.json'
 
 
+# ------------------------------------------------------------------------------
 class ModelService(ru.zmq.Server):
 
+    # --------------------------------------------------------------------------
     def __init__(self, path=None, args=None):
         ru.zmq.Server.__init__(self, path=path)
 
@@ -26,28 +29,30 @@ class ModelService(ru.zmq.Server):
             cfg_file = os.path.join(path, CONFIG_FILE)
 
         if not path or not os.path.exists(cfg_file):
-            cfg_file = os.path.join(os.path.dirname(__file__), CONFIG_FILE)
+            cfg_file = os.path.join(CURR_DIR, CONFIG_FILE)
 
         if not os.path.exists(cfg_file):
             raise FileNotFoundError('Model configuration file not found')
 
         self._args = ru.TypedDict(from_dict=ru.read_json(cfg_file))
-        if args:
-            self._args.update(vars(args))
+        args = vars(args) if args is not None else {}
+        self._args.update({k: v for k, v in args.items() if v is not None})
         self.configure()
 
         self._model = None
-        self.load_model()
-
         self._data_processor = None
-        self.get_data_processor()
 
+        self._model_time     = 0
         self._generate_time  = 0
         self._tune_time      = 0
         self._inference_time = 0
 
-        self.register_request('processor', self._processor)
+        self.register_request('load_model', self._load_model)
+        self.register_request('generate_datasets', self._generate_datasets)
+        self.register_request('finetune', self._finetune)
+        self.register_request('inference', self._inference)
 
+    # --------------------------------------------------------------------------
     def configure(self):
 
         dirs_list = ['data_repo_path', 'output_dir']
@@ -126,7 +131,12 @@ class ModelService(ru.zmq.Server):
         self._args.load_in_8bit_flag = False
         self._args.low_cpu_mem_usage = True
 
-    def load_model(self):
+    # --------------------------------------------------------------------------
+    def _load_model(self):
+        # measure the processing time
+        if get_rank() == 0:
+            start_time = time.time()
+
         model_info = load_model(**{k: self._args.get(k)
                                    for k in ['model_name',
                                              'model_type',
@@ -142,123 +152,130 @@ class ModelService(ru.zmq.Server):
         self._model                  = model_info[0]
         self._args.tokenizer         = model_info[1]
         self._args.generation_config = model_info[2]
-
-    def get_data_processor(self):
-        self._data_processor = get_data_processor(
+        self._data_processor         = get_data_processor(
             *[self._args.get(k) for k in ['data_name',
-                                      'data_repo_path',
-                                      'task',
-                                      'test_sample_size',
-                                      'model_name',
-                                      'tokenizer',
-                                      'model_max_len',
-                                      'generation_config']],
+                                          'data_repo_path',
+                                          'task',
+                                          'test_sample_size',
+                                          'model_name',
+                                          'tokenizer',
+                                          'model_max_len',
+                                          'generation_config']],
             **{k: self._args.get(k) for k in ['num_of_kbase_classes']})
 
-    def _processor(self, arg):
+        if get_rank() == 0:
+            self._model_time = time.time() - start_time
 
-        if arg['action'] == 'generate':
+    # --------------------------------------------------------------------------
+    def _generate_datasets(self):
+        if self._model is None:
+            self._load_model()
 
-            # measure the processing time
-            if get_rank() == 0:
-                start_time = time.time()
+        # measure the processing time
+        if get_rank() == 0:
+            start_time = time.time()
 
-            self._data_processor.generate_datasets(self._args.n_shots,
-                                                   self._args.lora_finetune)
+        self._data_processor.generate_datasets(self._args.n_shots,
+                                               self._args.lora_finetune)
 
-            if get_rank() == 0:
-                self._generate_time = time.time() - start_time
+        if get_rank() == 0:
+            self._generate_time = time.time() - start_time
 
-        elif arg['action'] == 'tune':
+    # --------------------------------------------------------------------------
+    def _finetune(self):
+        if self._model is None:
+            self._load_model()
 
-            # measure the processing time
-            if get_rank() == 0:
-                start_time = time.time()
+        # measure the processing time
+        if get_rank() == 0:
+            start_time = time.time()
 
-            if self._args.lora_finetune:
-                if (self._args.model_name in ['Falcon', 'Solar'] or
-                        self._args.model_type in [
-                            'meta-llama/Llama-2-70b-chat-hf',
-                            'meta-llama/Meta-Llama-3-70B',
-                            'meta-llama/Meta-Llama-3-70B-Instruct']):
-                    self._data_processor.finetune(
-                        self._model,
-                        *[self._args.get(k) for k in ['model_type',
-                                                      'train_batch_size',
-                                                      'validation_batch_size',
-                                                      'lora_output_dir']])
-                    self._args.lora_output_dir = os.path.join(
-                        self._args.lora_output_dir, 'final_checkpoint')
-
-                else:
-                    self._data_processor.finetune_by_accelerator(
-                        self._model,
-                        *[self._args.get(k) for k in ['model_type',
-                                                      'train_batch_size',
-                                                      'validation_batch_size',
-                                                      'lora_output_dir']])
-
-                _model = load_model(**{k: self._args.get(k)
-                                       for k in ['model_name',
-                                                 'model_type',
-                                                 'max_new_tokens',
-                                                 'data_type',
-                                                 'load_in_4bit_flag',
-                                                 'load_in_8bit_flag',
-                                                 'max_memory',
-                                                 'low_cpu_mem_usage',
-                                                 'quantization_config',
-                                                 'device_map',
-                                                 'lora_finetune']})[0]
-
-                if self._args.model_name == 'MPT':
-                    # MPT is trained with right padding, so change it to
-                    # left padding for inference.
-                    self._args.tokenizer.padding_side = 'left'
-
-                # Merge Model with Adapter
-                self._model = PeftModel.from_pretrained(
-                    _model,  # the base model with full precision
-                    self._args.lora_output_dir,  # path to the finetuned adapter
-                )
-
-            elif self._args.lora_weights:
-                self._model = PeftModel.from_pretrained(
+        if self._args.lora_finetune:
+            if (self._args.model_name in ['Falcon', 'Solar'] or
+                    self._args.model_type in [
+                        'meta-llama/Llama-2-70b-chat-hf',
+                        'meta-llama/Meta-Llama-3-70B',
+                        'meta-llama/Meta-Llama-3-70B-Instruct']):
+                self._data_processor.finetune(
                     self._model,
-                    self._args.lora_weights,
-                )
+                    *[self._args.get(k) for k in ['model_type',
+                                                  'train_batch_size',
+                                                  'validation_batch_size',
+                                                  'lora_output_dir']])
+                self._args.lora_output_dir = os.path.join(
+                    self._args.lora_output_dir, 'final_checkpoint')
 
-            self._model.config.use_cache = True  # enable for inference!
-            self._model.eval()
-
-            if torch.__version__ >= '2' and sys.platform != 'win32':
-                self._model = torch.compile(self._model)
-
-            if get_rank() == 0:
-                self._tune_time = time.time() - start_time
-
-        elif arg['action'] == 'inference':
-
-            # measure the processing time
-            if get_rank() == 0:
-                start_time = time.time()
-
-            if self._args.task == 'entity_and_entity_type':
-                self._data_processor.infer(
-                    self._model,
-                    self._args.generation_config,
-                    self._args.test_batch_size)
             else:
-                self._data_processor.infer_by_accelerator(
+                self._data_processor.finetune_by_accelerator(
                     self._model,
-                    'test',
-                    self._args.test_batch_size)
+                    *[self._args.get(k) for k in ['model_type',
+                                                  'train_batch_size',
+                                                  'validation_batch_size',
+                                                  'lora_output_dir']])
 
-            if get_rank() == 0:
-                self._inference_time = time.time() - start_time
+            _model = load_model(**{k: self._args.get(k)
+                                   for k in ['model_name',
+                                             'model_type',
+                                             'max_new_tokens',
+                                             'data_type',
+                                             'load_in_4bit_flag',
+                                             'load_in_8bit_flag',
+                                             'max_memory',
+                                             'low_cpu_mem_usage',
+                                             'quantization_config',
+                                             'device_map',
+                                             'lora_finetune']})[0]
 
-        return f'{arg["action"].title()} completed'
+            if self._args.model_name == 'MPT':
+                # MPT is trained with right padding, so change it to
+                # left padding for inference.
+                self._args.tokenizer.padding_side = 'left'
 
+            # Merge Model with Adapter
+            self._model = PeftModel.from_pretrained(
+                _model,  # the base model with full precision
+                self._args.lora_output_dir,  # path to the finetuned adapter
+            )
+
+        elif self._args.lora_weights:
+            self._model = PeftModel.from_pretrained(
+                self._model,
+                self._args.lora_weights,
+            )
+
+        self._model.config.use_cache = True  # enable for inference!
+        self._model.eval()
+
+        if torch.__version__ >= '2' and sys.platform != 'win32':
+            self._model = torch.compile(self._model)
+
+        if get_rank() == 0:
+            self._tune_time = time.time() - start_time
+
+    # --------------------------------------------------------------------------
+    def _inference(self):
+        if self._model is None:
+            self._load_model()
+
+        # measure the processing time
+        if get_rank() == 0:
+            start_time = time.time()
+
+        if self._args.task == 'entity_and_entity_type':
+            self._data_processor.infer(
+                self._model,
+                self._args.generation_config,
+                self._args.test_batch_size)
+        else:
+            self._data_processor.infer_by_accelerator(
+                self._model,
+                'test',
+                self._args.test_batch_size)
+
+        if get_rank() == 0:
+            self._inference_time = time.time() - start_time
+
+    # --------------------------------------------------------------------------
     def save_results(self):
         results = self._data_processor.results
         preprocessed = results[self._args.task]['preprocessed']
@@ -320,35 +337,54 @@ class ModelService(ru.zmq.Server):
                     exec_time=str(processing_time),
                 )
 
+    # --------------------------------------------------------------------------
     def stop(self) -> None:
         self.save_results()
         super().stop()
 
 
+# ------------------------------------------------------------------------------
 if __name__ == '__main__':
+
+    t0 = time.time()
 
     service = ModelService(args=get_args())
     service.start()
+    print('service addr: ', service.addr)
 
     reg_addr = os.getenv('RP_REGISTRY_ADDRESS')
     if reg_addr:
         reg = ru.zmq.RegistryClient(url=reg_addr)
         reg['app.service_addr'] = service.addr
         reg.close()
-    else:
-        ru.write_json({'service_addr': service.addr}, 'model_service_reg.json')
-    # service.wait()
 
-    # --- FOR TEST PURPOSES ---
-    client = ru.zmq.Client(url=service.addr)
-    prompt_response = client.request('processor', {'action': 'generate'})
-    print(prompt_response)
-    prompt_response = client.request('processor', {'action': 'tune'})
-    print(prompt_response)
-    prompt_response = client.request('processor', {'action': 'inference'})
-    print(prompt_response)
-    client.close()
-    # --- ^^^^^^^^^^^^^^^^^ ---
+        # run within RP application
+        service.wait()
+
+    else:
+        # --- FOR TEST PURPOSES ---
+        prof = ru.Profiler(name='client_local', path=os.getcwd())
+        client = ru.zmq.Client(url=service.addr)
+        prof.prof('client_req_start')
+        client.request('load_model')
+        prof.prof('client_req_stop')
+        print('Model loaded')
+        prof.prof('client_req_start')
+        client.request('generate_datasets')
+        prof.prof('client_req_stop')
+        print('Datasets generated')
+        prof.prof('client_req_start')
+        client.request('finetune')
+        prof.prof('client_req_stop')
+        print('Model tuned')
+        prof.prof('client_req_start')
+        client.request('inference')
+        prof.prof('client_req_stop')
+        print('Inference done')
+        client.close()
+        # --- ^^^^^^^^^^^^^^^^^ ---
 
     service.stop()
+
+    print('total time: ', time.time() - t0)
 

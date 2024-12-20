@@ -22,15 +22,15 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1" # to get a better traceback from the GP
 from peft import PeftModel
 
 from transformers import (
-    AutoModelForCausalLM, 
-    AutoTokenizer, 
+    AutoModelForCausalLM,
+    AutoTokenizer,
     AutoConfig,
-    GenerationConfig, 
-    LlamaForCausalLM, 
-    LlamaTokenizer, 
-    BioGptForCausalLM, 
-    AutoModelForSeq2SeqLM, 
-    GPT2LMHeadModel, 
+    GenerationConfig,
+    LlamaForCausalLM,
+    LlamaTokenizer,
+    BioGptForCausalLM,
+    AutoModelForSeq2SeqLM,
+    GPT2LMHeadModel,
     GPT2Tokenizer,
     BitsAndBytesConfig,
 )
@@ -247,12 +247,14 @@ def get_args():
     parser = argparse.ArgumentParser()
 
     # general args
-    parser.add_argument('--model_name', type=str, required=True)
-    parser.add_argument('--model_type', type=str, required=True)
-    parser.add_argument('--data_repo_path', type=str, required=True)
-    parser.add_argument('--output_dir', type=str, required=True)
-    parser.add_argument('--data_name', type=str, required=True)
-    parser.add_argument('--task', type=str, required=True)
+    parser.add_argument('--model_name', type=str)      # , required=True)
+    parser.add_argument('--model_type', type=str)      # , required=True)
+    parser.add_argument('--data_repo_path', type=str)  # , required=True)
+    parser.add_argument('--output_dir', type=str)      # , required=True)
+    parser.add_argument('--data_name', type=str)       # , required=True)
+    parser.add_argument('--task', type=str)            # , required=True)
+    # attributes which are set "required" will be provided within the config
+
     parser.add_argument('--test_sample_size', type=int, default=-1,
                         help="-1 means all data")
     parser.add_argument('--max_new_tokens', type=int, default=0,
@@ -601,4 +603,3 @@ def main():
     
 if __name__ == "__main__":
     main()
-    
